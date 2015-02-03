@@ -1,0 +1,192 @@
+\documentclass[a4paper,10pt]{report}
+\usepackage[utf8x]{inputenc}
+\usepackage[pdftex]{graphicx}
+
+\title{MATSCAT version 1: MATLAB toolbox for the Aquascat 1000 Acoustic Backscatter Sensor}
+\author{Daniel Buscombe}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Scope}
+This report documents a collection of Matlab routines for the purposes of reading binary files from an Aquatec Aquascat 1000 Acoustic Backscatter Sensor (ABS), and calculating the following properties from the measured acoustic backscatter:
+
+\begin{enumerate}
+ \item 1DV profile of suspended sediment mass concentration (g/L);
+ \item 1DV profile of suspended sediment mean particle size (mm);
+ \item The sediment form function and scattering cross-section for a given frequency;
+ \item The speed of sound and acoustic attenuation (spreading loss and sediment attenuation) in water, for a given frequency, for a given water depth, temperature and salinity.
+\end{enumerate}
+
+The majority of these functions were written by Aquatec Group Limited. I have simply collated them, fixed a few bugs, made a few functions run more efficiently/quicker, and provided some wrapper functions and examples of how to call the toolbox in `batch' mode to process several folders containing raw data. I have also tested/developed the functions using data from two very different environments: 1) a natural surf zone on a coarse sand beach; 2) a freshwater turbulence tank containing fine glass spheres of different sizes. 
+
+This report is an attempt to briefly describe these functions and a typical workflow. It is intended that this document serves as a starting point in the development of this toolbox. MATSCAT version 1 has been tested using MATLAB 9, 11a and 11b using data collected using an Aquatec Aquascat 1000 instrument.
+
+\section{List of Functions and Their Use}
+
+\subsection{Caller Functions}
+
+\begin{enumerate}
+ \item 
+\begin{verbatim} range_correct_abs.m \end{verbatim}
+Version 1.0, written by Daniel Buscombe.\\
+A function to take raw acoustic amplitudes and return range-corrected acoustic backscatter amplitudes. Essentially a wrapper for the functions:
+\begin{verbatim} ReadAquaScat1000.m, get_abs_timestamp.m, RangeCorrectAbsProfiles.m, 
+ CalcSpeedOfSound.m \end{verbatim} 
+(detailed below), designed to call them in the correct sequence with the correct input arguments. Takes a number of directories with different inputs.
+
+\item
+\begin{verbatim} get_abs_concs_and_sizes.m \end{verbatim} 
+Version 1.0, written by Daniel Buscombe.\\
+A function to take range-corrected acoustic backscatter amplitudes, calculate a form function based on user inputs, and return calculated profiles of sediment mass concentration and mean size. Essentially a wrapper for the functions:
+\begin{verbatim} CalcFormFunction.m, CalcSedimentSizeAndMass_efficient.m \end{verbatim}
+(detailed below), designed to call them in the correct sequence with the correct input arguments. Takes a number of directories with different inputs.
+
+\end{enumerate}
+
+\subsection{Main Functions}
+
+\begin{enumerate}
+ \item 
+\begin{verbatim} ReadAquaScat1000.m \end{verbatim}
+Version 1.5, written by Aquatec Group Limited.\\
+Import data from the (binary) AQUAscat1000.aqa file format and writes it to a variety of Matlab format (.mat) files.
+
+ \item
+\begin{verbatim} ReadAquaScat1000Summary.m \end{verbatim}
+Version 1.4b, written by Aquatec Group Limited.\\
+Similar to ReadAquaScat1000Summary.m but I believe it now to be depreciated.
+
+ \item
+\begin{verbatim} RangeCorrectAbsProfiles.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Applies a straight forward range correction that takes into account the spreading loss and water attenuation in water of a given depth, salinity and temperature. For single frequencies.
+
+ \item
+\begin{verbatim} CalcFormFunction.m \end{verbatim}
+Version 2.1, written by Aquatec Group Limited.\\
+Calculates the required Form Function and scattering cross section for a given frequency, taking into account the particle size distribution. It calls CalcSievedFormFunction.m to determine the form function and sets the min and max limits to 3x the standard deviation of particle size. 
+
+ \item
+\begin{verbatim} CalcSedimentFormFunction.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Calculates the required Form Function and scattering cross section for a given frequency, taking into account the particle size distribution. Based on: \textit{E.D. Thoeston and D.M. Hanes, 1988, J.Acoust. Soc. Am. 104(2) Part 1.}
+
+ \item
+\begin{verbatim} CalcSievedFormFunction.m \end{verbatim}
+Version 1.1, written by Aquatec Group Limited.\\
+Calculates the required form function and scattering cross section of a size distribution of either natural sand or glass sphere particles, for a given frequency. Note that a normal particle size distribution is assumed. Future versions made want to provide a user option to base on a lognormal distribution instead.
+
+ \item
+\begin{verbatim} TheoryFormFunction.m \end{verbatim}
+Version 1.1, written by George Voulgaris (University of South Carolina) and Aquatec Group Limited.\\
+Estimates of the form function and cross-section area for a single sphere based on \textit{Gaunard G.C and Uberall, H., 1983. J.Acoust. Soc. Am. 73(1),pp 1-12} (see equation 17 in page 3 of paper). 
+
+ \item
+\begin{verbatim} CalcSedimentSizeAndMass_efficient.m \end{verbatim}
+Version 1.3, written by Aquatec Group Limited and Daniel Buscombe.\\
+Function to calculate the sediment size and mass from a range corrected profile containing multiple frequency data. The user provides the minmum, maximum and standard deviation of particle sizes, as well as a 'Start Bin' which is the first bin in the profile (bin number increases from the transducer) at which to calculate sediment attenuation, mass and size. The program works down iteratively from this bin to the last bin furthest from the transducer.
+
+ \item
+\begin{verbatim} get_abs_timestamp.m \end{verbatim}
+Version 1.0, written by Daniel Buscombe.\\
+Returns the start time of a data burst from the filename of a raw .aqa file, in datenum and string formats.
+
+ \item
+\begin{verbatim} ReadImDir.m \end{verbatim}
+Version 1.0, written by Daniel Buscombe.\\
+Function to return a list of files of a given type in a directory.
+
+ \item
+\begin{verbatim} MultRangeCorrectAbsProfiles.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Applies a straight forward range correction that takes into account the spreading loss and water attenuation in water of a given depth, salinity and temperature. For multiple frequencies.
+
+ \item
+\begin{verbatim} CalcKtForXXumBallotini.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Calculates sediment attenuation coefficients (Kt) \textemdash which vary per instrument \textemdash using a near homogenous 1/4phi size distributed ballotini beads.
+
+ \item
+\begin{verbatim} CalcWaterAttenuation.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Calculates the water attenuation for a specific frequency.
+
+ \item
+\begin{verbatim} AverageAbsProfiles.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Provides an average over a given number of profiles (`pings'), for downsampling/smoothing data recorded at high sample rates
+
+ \item
+\begin{verbatim} CalcBackscatterVoltage.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Generate a theoretical backscatter voltage for a given water depth, salinity and temperature, a given instrument's attenuation coefficients, a given particle size distribution, a given frequency, a gievn transduecr radius, and a given sediment type (sand or glass spheres). This function assumes that the bins are a consistent size which is typical of such a system.
+
+ \item
+\begin{verbatim} CalcSpeedOfSound.m \end{verbatim}
+Version 1.0, written by Aquatec Group Limited.\\
+Calculates speed of sound in water for a given temperature, salinity and depth.
+
+\end{enumerate}
+
+\subsection{Wrapper Functions}
+
+\begin{enumerate}
+ \item
+\begin{verbatim} batch_range_correct_abs.m \end{verbatim}
+Version 1.0, written by Daniel Buscombe.\\
+Example wrapper function to call:
+\begin{verbatim} range_correct_abs.m \end{verbatim}
+in `batch mode'. It is designed to be used for situations where the user has a number of different directories of raw data to process, each of which requires different user inputs.
+
+ \item
+\begin{verbatim} batch_get_abs_concs_and_sizes.m \end{verbatim}
+Version 1.0, written by Daniel Buscombe.\\
+Example wrapper function to call:
+\begin{verbatim} get_abs_concs_and_sizes.m \end{verbatim}
+in `batch mode'. It is designed to be used for situations where the user has a number of different directories of raw data to process, each of which requires different user inputs.
+
+\end{enumerate}
+
+\clearpage
+\section{Typical Data Analysis Workflow}
+
+Typically you will have collected a number of different bursts of data using your ABS, and in each of these bursts the water depth, water temperature, salinity, sediment particle size distribution or even sediment type may have varied. In this case, you might use the MATSCAT toolbox thus:
+
+\begin{enumerate}
+ \item Edit/modify \begin{verbatim} batch_range_correct_abs.m \end{verbatim} and \begin{verbatim} batch_get_abs_concs_and_sizes.m \end{verbatim} to suit your own purposes (i.e. your own path names, water depths, salinities etc). 
+ \item Then you would run each in turn: first \begin{verbatim} batch_range_correct_abs.m \end{verbatim} then \begin{verbatim} batch_get_abs_concs_and_sizes.m \end{verbatim}
+\end{enumerate}
+
+
+\section{Contact and Citation}
+Questions, bugs, sugggestions, comments, collaborations: \begin{verbatim} daniel.buscombe@plymouth.ac.uk \end{verbatim}
+
+Redistribution and use in source and binary forms, with or without modification, are permitted for \textbf{non-commercial purposes} provided that Aquatec Group Limited are acknowledged. 
+
+Please cite this report/toolbox as:
+\begin{verbatim}
+Buscombe, D. (2012) MATSCAT version 1: MATLAB Toolbox for the Aquascat 1000 
+Acoustic Backscatter Sensor. Technical report for the School of Marine Science 
+and Engineering, Plymouth University.
+\end{verbatim}
+
+BibTeX entry:
+\begin{verbatim}
+    @misc {MATSCATv1,
+    author = "D. Buscombe",
+    title = "{MATSCAT} version 1: {MATLAB} Toolbox for the {A}quascat 1000 
+             {A}coustic {B}ackscatter {S}ensor",
+    howpublished = "Technical report for the 
+                    {S}chool of {M}arine {S}cience and {E}ngineering, 
+                    {P}lymouth {U}niversity",
+    }
+\end{verbatim}
+
+
+\end{document}          
+
+
+
+
+
